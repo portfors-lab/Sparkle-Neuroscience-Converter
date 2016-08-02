@@ -351,7 +351,7 @@ class MainForm(QtGui.QMainWindow):
                                             trace_string += 'trialid=' + str(rep) + '; '
                                             trace_string += 'siteid=' + str(channel) + '; '
                                             trace_string += 'start_time=' + '0' + '; '
-                                            trace_string += 'end_time=' + str(stimulus['components'][stim-1]['duration']) + ': '
+                                            trace_string += 'end_time=' + str(stimulus['components'][stim-1]['duration']) + '; '
                                             trace_string += '\n'
 
                                             # h_file[key][test].value[trace, rep, chan, :]
