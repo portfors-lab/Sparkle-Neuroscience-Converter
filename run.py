@@ -310,6 +310,7 @@ class MainForm(QtGui.QMainWindow):
                                 stimuli = json.loads(h_file[key][test].attrs['stim'])
                                 stimulus = stimuli[trace - 1]
                                 if stimuli_count[trace] < 2:
+                                    cat_count += 1
                                     for rep in islice(count(1), repetitions):
                                         self.ui.textEdit.append('Channel: ' + str(channel) + '  Trace: ' + str(trace) + '  Rep: ' + str(rep))
                                         trace_count += 1
