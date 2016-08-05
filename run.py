@@ -251,6 +251,7 @@ class MainForm(QtGui.QMainWindow):
 
         for key in h_file.keys():
             if 'segment' in key:
+                fs = h_file[key].attrs['samplerate_ad']
                 for test in h_file[key].keys():
                     if test == test_name:
                         # Build site string
@@ -328,8 +329,8 @@ class MainForm(QtGui.QMainWindow):
                                         else:
                                             raw_trace = h_file[key][test].value[trace - 1, rep - 1, channel - 1, :]
                                         # Add to Data File
-                                        for sample in raw_trace:
-                                            if sample >= self.chan_dict['channel_' + str(channel)]:
+                                        spike_times = get_spike_times(raw_trace, self.chan_dict['channel_' + str(channel)], fs)
+                                        for sample in spike_times:
                                                 stad.write(str(sample))
                                                 stad.write(' ')
                                         stad.write('\n')
@@ -366,10 +367,10 @@ class MainForm(QtGui.QMainWindow):
                                             sample_end = sample_start + sample_duration
                                             stimuli_trace = raw_trace[:sample_end][sample_start:]
                                             # Add to Data File
-                                            for sample in stimuli_trace:
-                                                if sample >= self.chan_dict['channel_' + str(channel)]:
-                                                    stad.write(str(sample))
-                                                    stad.write(' ')
+                                            spike_times = get_spike_times(raw_trace, self.chan_dict['channel_' + str(channel)], fs)
+                                            for sample in spike_times:
+                                                stad.write(str(sample))
+                                                stad.write(' ')
                                             stad.write('\n')
                                             meta_progress += stim_progress / float(repetitions)
                                             data_progress += stim_progress / float(repetitions)
@@ -418,6 +419,53 @@ class MainForm(QtGui.QMainWindow):
 
         self.convert()
 
+
+def get_spike_times(signal, threshold, fs):
+    times = []
+    over, = np.where(signal > float(threshold))
+    segments, = np.where(np.diff(over) > 1)
+
+    if len(over) > 1:
+        if len(segments) == 0:
+            segments = [0, len(over) - 1]
+        else:
+            # add end points to sections for looping
+            if segments[0] != 0:
+                segments = np.insert(segments, [0], [0])
+            else:
+                # first point in singleton
+                times.append(float(over[0]) / fs)
+                if 1 not in segments:
+                    # make sure that first point is in there
+                    segments[0] = 1
+            if segments[-1] != len(over) - 1:
+                segments = np.insert(segments, [len(segments)], [len(over) - 1])
+            else:
+                times.append(float(over[-1]) / fs)
+
+        for iseg in range(1, len(segments)):
+            if segments[iseg] - segments[iseg - 1] == 1:
+                # only single point over threshold
+                idx = over[segments[iseg]]
+            else:
+                segments[0] = segments[0] - 1
+                # find maximum of continuous set over max
+                idx = over[segments[iseg - 1] + 1] + np.argmax(
+                    signal[over[segments[iseg - 1] + 1]:over[segments[iseg]]])
+            times.append(float(idx) / fs)
+    elif len(over) == 1:
+        times.append(float(over[0]) / fs)
+
+    if len(times) > 0:
+        refract = 0.002
+        times_refract = []
+        times_refract.append(times[0])
+        for i in range(1, len(times)):
+            if times_refract[-1] + refract <= times[i]:
+                times_refract.append(times[i])
+        return times_refract
+    else:
+        return times
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
