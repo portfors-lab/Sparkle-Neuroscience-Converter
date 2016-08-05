@@ -367,7 +367,7 @@ class MainForm(QtGui.QMainWindow):
                                             sample_end = sample_start + sample_duration
                                             stimuli_trace = raw_trace[:sample_end][sample_start:]
                                             # Add to Data File
-                                            spike_times = get_spike_times(raw_trace, self.chan_dict['channel_' + str(channel)], fs)
+                                            spike_times = get_spike_times(stimuli_trace, self.chan_dict['channel_' + str(channel)], fs)
                                             for sample in spike_times:
                                                 stad.write(str(sample))
                                                 stad.write(' ')
