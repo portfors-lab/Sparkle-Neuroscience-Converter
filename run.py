@@ -343,6 +343,7 @@ class MainForm(QtGui.QMainWindow):
                                     stim_progress = trace_progress / stimuli_count[trace]
                                     for stim in islice(count(1), stimuli_count[trace]):
                                         self.ui.textEdit.append('Channel: ' + str(channel) + '  Trace: ' + str(trace) + '  Stim: ' + str(stim))
+                                        add_time = self.ui.doubleSpinBox_add_stim_time.value()
                                         cat_count += 1
                                         for rep in islice(count(1), repetitions):
                                             self.ui.textEdit.append('Channel: ' + str(channel) + '  Trace: ' + str(trace) + '  Stim: ' + str(stim) + '  Rep: ' + str(rep))
@@ -353,7 +354,13 @@ class MainForm(QtGui.QMainWindow):
                                             trace_string += 'trialid=' + str(rep) + '; '
                                             trace_string += 'siteid=' + str(channel) + '; '
                                             trace_string += 'start_time=' + '0' + '; '
-                                            trace_string += 'end_time=' + str(stimulus['components'][stim-1]['duration']) + '; '
+                                            if stimulus['components'][stim-1]['stim_type'] != 'silence':
+                                                trace_string += 'end_time=' + str(stimulus['components'][stim-1]['duration'] + add_time) + '; '
+                                            elif stimulus['components'][stim-1]['stim_type'] == 'silence' and stim > 1:
+                                                trace_string += 'end_time=' + str(stimulus['components'][stim - 1]['duration'] - add_time) + '; '
+                                            else:
+                                                trace_string += 'end_time=' + str(stimulus['components'][stim - 1]['duration']) + '; '
+
                                             trace_string += '\n'
 
                                             # h_file[key][test].value[trace, rep, chan, :]
@@ -363,7 +370,12 @@ class MainForm(QtGui.QMainWindow):
                                                 raw_trace = h_file[key][test].value[trace - 1, rep - 1, channel - 1, :]
 
                                             sample_start = stimulus['components'][stim-1]['start_s'] * h_file[key].attrs['samplerate_ad']
-                                            sample_duration = stimulus['components'][stim-1]['duration'] * h_file[key].attrs['samplerate_ad']
+                                            if stimulus['components'][stim-1]['stim_type'] != 'silence':
+                                                sample_duration = (stimulus['components'][stim - 1]['duration'] + add_time) * h_file[key].attrs['samplerate_ad']
+                                            elif stimulus['components'][stim - 1]['stim_type'] == 'silence' and stim > 1:
+                                                sample_duration = (stimulus['components'][stim - 1]['duration'] - add_time) * h_file[key].attrs['samplerate_ad']
+                                            else:
+                                                sample_duration = stimulus['components'][stim-1]['duration'] * h_file[key].attrs['samplerate_ad']
                                             sample_end = sample_start + sample_duration
                                             stimuli_trace = raw_trace[:sample_end][sample_start:]
                                             # Add to Data File
@@ -404,9 +416,13 @@ class MainForm(QtGui.QMainWindow):
         stam.write(site_string)
         stam.write('#\n')
         stam.write('# Category metadata\n')
+        if self.ui.doubleSpinBox_add_stim_time.value() != 0:
+            stam.write('# stimulus window: + ' + str(self.ui.doubleSpinBox_add_stim_time.value()) + ' s\n')
         stam.write(category_string)
         stam.write('#\n')
         stam.write('# Trace metadata\n')
+        if self.ui.doubleSpinBox_add_stim_time.value() != 0:
+            stam.write('# Stim + \n')
         stam.write(trace_string)
 
         stam.close()
