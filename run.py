@@ -228,7 +228,7 @@ class MainForm(QtGui.QMainWindow):
 
         temp_filename = get_file_name(self.ui.lineEdit_file_name.text().replace('.hdf5', ''))
         test_name = self.ui.comboBox_test_num.currentText()
-        datafile = self.ui.lineEdit_output_directory.text() + os.path.sep + temp_filename + '_' + test_name + '.stad'
+        datafile = temp_filename + '_' + test_name + '.stad'
 
         stam = open(self.ui.lineEdit_output_directory.text() + os.path.sep + temp_filename + '_' + test_name + '.stam', 'w')
         stad = open(self.ui.lineEdit_output_directory.text() + os.path.sep + temp_filename + '_' + test_name + '.stad', 'w')
@@ -410,6 +410,7 @@ class MainForm(QtGui.QMainWindow):
                             site_string += 'time_scale=1; '
                             # TODO Calculate Time Resolution
                             site_string += 'time_resolution=0.001;\n'
+                            site_string += 'si_unit=volts; si_prefix=1.0;\n'
                             meta_progress += 5 / float(channels)
                             self.ui.progressBar_meta.setValue(meta_progress)
 
