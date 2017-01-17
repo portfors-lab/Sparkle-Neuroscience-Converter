@@ -287,7 +287,6 @@ class MainForm(QtGui.QMainWindow):
                                             stimuli_count[trace] += 1
                                         else:
                                             stimuli_count[trace] = 1
-                                        comment = h_file[key].attrs['comment']  # Test Comment
                                         if components['stim_type'] == 'Vocalization':
                                             # Get only the filename and then remove the extension
                                             stim = os.path.splitext(components['filename'].split('/')[-1])[0]
