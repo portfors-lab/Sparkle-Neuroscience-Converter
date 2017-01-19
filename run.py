@@ -211,6 +211,55 @@ class MainForm(QtGui.QMainWindow):
 
         self.ui.doubleSpinBox_threshold.setValue(thresh)
 
+    def auto_threshold2(self, test, channel):
+        threshFraction = 0.7
+
+        filename = self.ui.lineEdit_file_name.text()
+
+        # Validate filename
+        if filename != '':
+            if '.hdf5' in filename:
+                try:
+                    h_file = h5py.File(unicode(self.filename), 'r')
+                    target_test = test
+                except IOError:
+                    self.ui.textEdit.append('Error: I/O Error\n')
+                    return
+            else:
+                self.ui.textEdit.append('Error: Must select a .hdf5 file.\n')
+                return
+        else:
+            self.ui.textEdit.append('Error: Must select a file to open.\n')
+            return
+
+        # Find target segment
+        for segment in h_file.keys():
+            for test in h_file[segment].keys():
+                if target_test == test:
+                    target_seg = segment
+                    target_test = test
+
+        trace_data = h_file[target_seg][target_test].value
+
+        if len(trace_data.shape) == 4:
+            # Compute threshold from average maximum of traces
+            max_trace = []
+            tchan = channel
+            for n in range(len(trace_data[1, :, tchan - 1, 0])):
+                max_trace.append(np.max(np.abs(trace_data[1, n, tchan - 1, :])))
+            average_max = np.array(max_trace).mean()
+            thresh = threshFraction * average_max
+
+        else:
+            # Compute threshold from average maximum of traces
+            max_trace = []
+            for n in range(len(trace_data[1, :, 0])):
+                max_trace.append(np.max(np.abs(trace_data[1, n, :])))
+            average_max = np.array(max_trace).mean()
+            thresh = threshFraction * average_max
+
+        return thresh
+
     def convert(self):
         filename = self.ui.lineEdit_file_name.text()
         if filename != '':
@@ -328,7 +377,20 @@ class MainForm(QtGui.QMainWindow):
                                         else:
                                             raw_trace = h_file[key][test].value[trace - 1, rep - 1, channel - 1, :]
                                         # Add to Data File
-                                        spike_times = get_spike_times(raw_trace, self.chan_dict['channel_' + str(channel)], fs)
+                                        try:
+                                            spike_times = get_spike_times(raw_trace, self.chan_dict['channel_' + str(channel)], fs)
+                                        except:
+                                            temp_thresh = self.auto_threshold2(test, channel)
+                                            spike_times = get_spike_times(raw_trace, temp_thresh, fs)
+                                            self.chan_dict['channel_' + str(channel)] = temp_thresh
+
+                                            msg = QtGui.QMessageBox()
+                                            msg.setWindowTitle("Warning!")
+                                            msg.setWindowIcon(QtGui.QIcon('horsey.ico'))
+                                            msg.setIcon(QtGui.QMessageBox.Warning)
+                                            msg.setText("No threshold selected for " + str(test) + ", channel_" + str(channel) +
+                                                                    ".\nEstimating threshold at: " + str(temp_thresh) + " V")
+                                            msg.exec_()
                                         for sample in spike_times:
                                                 stad.write(str(sample))
                                                 stad.write(' ')
